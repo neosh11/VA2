@@ -7,8 +7,10 @@ import { Fragment } from "react";
 
 import rd3 from "react-d3-library";
 
-import BarChart from "./chart";
-import Blobs from "./sunburst";
+import BarChart from "./charts/chart";
+import Blobs from "./charts/bubbles";
+import SunBurst from "./charts/sunburst";
+import { sunburst_data } from "./data/sunburst";
 const RD3Component = rd3.Component;
 
 const user = {
@@ -62,27 +64,23 @@ export default function Home() {
         </dl>
       </div>
 
-      <div className="w-100">
-        <Blobs
-          data={[
-            { r: 5.148585196204891, group: 0 },
-            { r: 12.165799682522458, group: 2 },
-            { r: 17.28646310018443, group: 3 },
-            { r: 13.106289115828547, group: 4 },
-            { r: 10.424400994182266, group: 1 },
-            { r: 10.93892343253752, group: 2 },
-          ]}
-        />
-
-        <>
-          <BarChart
+      <div className="grid lg:grid-cols-2 md:grid-cols-1">
+        <div className="w-full border-2 p-5">
+          <Blobs
             data={[
-              { year: 1980, efficiency: 24.3, sales: 8949000 },
-              { year: 1982, efficiency: 23.3, sales: 8949000 },
-              { year: 1983, efficiency: 26.3, sales: 8949000 },
+              { r: 5.148585196204891, group: 0 },
+              { r: 12.165799682522458, group: 2 },
+              { r: 17.28646310018443, group: 3 },
+              { r: 13.106289115828547, group: 4 },
+              { r: 10.424400994182266, group: 1 },
+              { r: 10.93892343253752, group: 2 },
             ]}
           />
-        </>
+        </div>
+
+        <div className="w-full border-2 p-5">
+          <SunBurst data={sunburst_data} />
+        </div>
       </div>
     </>
   );

@@ -1,16 +1,17 @@
-import { useD3 } from "./useD3";
-import React from "react";
+import { useD3 } from "../useD3";
+import React, { useEffect, useRef, useState } from "react";
 import * as d3 from "d3";
+import { useContainerSize } from "../useContainerSize";
 
 function Blobs({ data }) {
+  const containerRef = useRef(null);
+  const { width, height } = useContainerSize(containerRef);
+
   const ref = useD3(
     (svg) => {
-      const width = 1000;
-      const height = 1000;
+      svg.selectAll("*").remove();
       const context = svg.node().getContext("2d");
-
       const nodes = data.map(Object.create);
-
       const simulation = d3
         .forceSimulation(nodes)
         .alphaTarget(0.3) // stay hot
@@ -54,10 +55,14 @@ function Blobs({ data }) {
       }
       return simulation;
     },
-    [data.length]
+    [data.length, width, height]
   );
 
-  return <canvas ref={ref} width={1000} height={1000}></canvas>;
+  return (
+    <div ref={containerRef} className="w-full aspect-square">
+      <canvas ref={ref} width={width} height={height}></canvas>
+    </div>
+  );
 }
 
 export default Blobs;

@@ -1,10 +1,11 @@
-import { useD3 } from "./useD3";
+import { useD3 } from "../useD3";
 import React from "react";
 import * as d3 from "d3";
 
 function BarChart({ data }) {
   const ref = useD3(
     (svg) => {
+      svg.selectAll("*").remove();
       const height = 500;
       const width = 500;
       const margin = { top: 20, right: 30, bottom: 30, left: 40 };
