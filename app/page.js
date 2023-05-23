@@ -1,17 +1,11 @@
 "use client";
 
-import Image from "next/image";
-import styles from "./page.module.css";
-import { Disclosure, Menu, Transition } from "@headlessui/react";
-import { Fragment, useState } from "react";
+import { useState } from "react";
 
-import rd3 from "react-d3-library";
-
-import BarChart from "./charts/chart";
 import Blobs from "./charts/bubbles";
 import SunBurst from "./charts/sunburst";
 import { sunburst_data } from "./data/sunburst";
-import WorldMap from "./charts/cloro";
+
 import Intro from "./charts/intro";
 import Explore from "./charts/exploration";
 import Explore2 from "./charts/exploration2";
