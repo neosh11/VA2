@@ -20,36 +20,19 @@ function classNames(...classes) {
 
 
 const tabs = [
-  { name: "intro", id: "intro" },
-  { name: "Sunburst", id: "sunburst" },
+  { name: "Introduction", id: "intro" },
+  { name: "Models by Country", id: "sunburst" },
   { name: "Yours", id: "yours" },
-
   { name: "Yours", id: "yours" },
   { name: "Yours", id: "yours" },
 ];
 
-function Navigation({ selectedTab = "sunburst", setselectedTab }) {
+function Navigation({ selectedTab = "intro", setselectedTab }) {
   return (
     <div>
-      <div className="sm:hidden">
-        <label htmlFor="tabs" className="sr-only">
-          Select a tab
-        </label>
-        {/* Use an "onChange" listener to redirect the user to the selected tab URL. */}
-        <select
-          id="tabs"
-          name="tabs"
-          className="block w-full rounded-md border-gray-300 focus:border-indigo-500 focus:ring-indigo-500"
-          defaultValue={tabs.find((tab) => tab.id == selectedTab).name}
-        >
-          {tabs.map((tab) => (
-            <option key={tab.name}>{tab.name}</option>
-          ))}
-        </select>
-      </div>
-      <div className="hidden sm:block">
+      <div>
         <nav
-          className="isolate divide-gray-200 rounded-lg shadow grid grid-cols-2"
+          className="isolate divide-gray-200 grid grid-cols-1 md:grid-cols-2"
           aria-label="Tabs"
         >
           {tabs.map((tab, tabIdx) => (
