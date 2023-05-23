@@ -25,7 +25,7 @@ const tabs = [
   { name: "Introduction", id: "intro" },
   { name: "Models by Country", id: "sunburst" },
   { name: "Makes Over Timer", id: "explore" },
-  { name: "HP/Speed/Efficiency", id: "explore2" },
+  { name: "Mileage vs CO2", id: "explore2" },
   { name: "Yours", id: "yours" },
   { name: "Yours2", id: "yours2" },
 ];

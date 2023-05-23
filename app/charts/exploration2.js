@@ -152,33 +152,52 @@ function Explore2() {
       // car company is the category -> scale
       // Get all unique years and car makes
       const years = new Set(raw.map((d) => d.year_from));
-      const makes = new Set(raw.map((d) => d.make));
+      const variables = [
+        "mixed_fuel_consumption_per_100_km_l",
+        "co2_emissions_g/km",
+        // "engine_hp",
+      ];
 
       // Initialize an empty array to hold the data
       let data = [];
 
       // Loop over all years and car makes
       for (let year of years) {
-        for (let make of makes) {
+        for (let v of variables) {
           // Get the count of cars for the current year and make
-          const count = raw.filter(
-            (d) => d.year_from === year && d.make === make
-          ).length;
+          const dataxx = raw.filter((d) => d.year_from === year && d[v]);
+          // get the sum of dataxx
+          let tot = 0;
+          let count = 0;
+          for (let i = 0; i < dataxx.length; i++) {
+            //parse dataxx[i][v] as a float
+            dataxx[i][v] = parseFloat(dataxx[i][v]);
+            if (dataxx[i][v] > 0) {
+              tot += dataxx[i][v];
+              count += 1;
+            }
+          }
+
+          if (count > 0) {
+            tot /= count;
+          }
 
           // Push the data point to the array
           data.push({
             x: year,
-            y: count,
-            z: make,
+            y: tot ,
+            z: v,
           });
         }
       }
 
+      console.log(data);
+
       Streamgraph(data, {
         x: (d) => d.x,
-        y: (d) => Math.floor(d.y),
+        y: (d) => d.y,
         z: (d) => d.z,
-        yLabel: "Models made per year",
+        yLabel: "Mileage vs CO2 over time",
         width: width,
         height: height,
         svg: svg,
