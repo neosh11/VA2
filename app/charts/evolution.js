@@ -244,7 +244,6 @@ function Evolution() {
           <select
             value={selectedMake}
             onChange={(e) => {
-              console.log(e.target.value);
               setselectedMake(e.target.value);
             }}
           >
@@ -263,7 +262,6 @@ function Evolution() {
           <select
             value={selectedColor}
             onChange={(e) => {
-              console.log(e.target.value);
               setselectedColor(e.target.value);
             }}
           >
@@ -282,7 +280,6 @@ function Evolution() {
           <select
             value={selectedSize}
             onChange={(e) => {
-              console.log(e.target.value);
               setselectedSize(e.target.value);
             }}
           >
@@ -300,8 +297,6 @@ function Evolution() {
   const ref = useD3(
     (svg) => {
       svg.selectAll("*").remove();
-
-      console.log(width, height);
 
       if (!raww) return;
 
@@ -329,8 +324,6 @@ function Evolution() {
 
         return acc;
       }, {});
-
-      console.log(groups);
 
       for (let key in groups) {
         let valuesInit = groups[key];
@@ -363,8 +356,6 @@ function Evolution() {
           obj[key] = median;
         }
 
-        console.log(obj);
-
         groups[key] = obj;
       }
 
@@ -376,27 +367,12 @@ function Evolution() {
 
       const group_values = Object.values(groups).filter((d) => d.year_from);
 
-      console.log(
-        group_values.map((d) => {
-          return {
-            year_from: d.year_from,
-            year_to: d.year_to,
-            make: d.make,
-            model: d.model,
-            generation: d.generation,
-          };
-        })
-      );
-
       group_values.sort((a, b) => {
         if (a.model === b.model) {
           return a.year_from - b.year_from;
         }
         return a.model.localeCompare(b.model);
       });
-
-      console.log("group_values");
-      console.log(group_values);
 
       let hierarchicalData = [];
       let currentNode = null;
@@ -412,9 +388,6 @@ function Evolution() {
           year_to: item.year_to,
           children: [],
         };
-
-        console.log("item", currentNode && currentNode.model, node.model);
-        console.log(item);
 
         if (currentNode && currentNode.model === node.model) {
           // If current model is same as the item's model, append to the current model's tree
@@ -435,8 +408,6 @@ function Evolution() {
         currentNode = node;
       });
 
-      console.log(group_values);
-
       // add a rooth tot his data
       const rootNode = {
         name: "root",
@@ -444,8 +415,6 @@ function Evolution() {
         year_to: "1900",
         children: hierarchicalData,
       };
-
-      console.log(hierarchicalData);
 
       Tree(rootNode, {
         label: (d) => d.name,
