@@ -377,7 +377,7 @@ function Evolution() {
         svg,
       });
     },
-    [width, selectedMake]
+    [width, selectedMake, raww]
   );
 
   return (
