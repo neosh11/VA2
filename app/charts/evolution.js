@@ -57,8 +57,22 @@ function Tree(
   const L = label == null ? null : descendants.map((d) => label(d.data, d));
 
   // Compute the layout.
-  const dx = 10;
-  const dy = width / (root.height + padding);
+
+  // number of descenteds of the root
+  const n = descendants.length;
+
+  const dx = 20;
+
+  const xScale = d3
+    .scaleLinear()
+    .domain([d3.min(root.descendants(), (d) => d.data.year_from) - 10, 2025])
+    .range([0, width]);
+
+  // Calculate the maximum depth based on year_from value
+  const maxDepth = d3.max(root.descendants(), (d) => d.data.year_from);
+
+  const dy = width / maxDepth;
+
   tree().nodeSize([dx, dy])(root);
 
   // Center the tree.
@@ -100,7 +114,7 @@ function Tree(
       "d",
       d3
         .link(curve)
-        .x((d) => d.y)
+        .x((d) => xScale(d.data.year_from))
         .y((d) => d.x)
     );
 
@@ -111,7 +125,7 @@ function Tree(
     .join("a")
     .attr("xlink:href", link == null ? null : (d) => link(d.data, d))
     .attr("target", link == null ? null : linkTarget)
-    .attr("transform", (d) => `translate(${d.y},${d.x})`);
+    .attr("transform", (d) => `translate(${xScale(d.data.year_from)},${d.x})`);
 
   node
     .append("circle")
@@ -239,7 +253,7 @@ function Evolution() {
 
       // get all values in groups
 
-      const group_values = Object.values(groups);
+      const group_values = Object.values(groups).filter((d) => d.year_from);
 
       console.log(
         group_values.map((d) => {
@@ -289,6 +303,7 @@ function Evolution() {
           // Else, create a new model node
           const currentModelNode = {
             name: item.model,
+            year_from: item.year_from - 0.1,
             children: [node],
           };
           hierarchicalData.push(currentModelNode);
@@ -327,7 +342,7 @@ function Evolution() {
         sort: (a, b) => d3.descending(a.height, b.height), // reduce link crossings
         tree: d3.cluster,
         width: width,
-        height: height,
+        // height: height,
         svg,
       });
 
@@ -415,13 +430,13 @@ function Evolution() {
       //     return d.data.name;
       //   });
     },
-    [width, height, selectedMake]
+    [width, selectedMake]
   );
 
   return (
     <>
       {makeSelector}
-      <div ref={containerRef} className="w-full aspect-square">
+      <div ref={containerRef} className="w-full flex">
         <svg
           ref={ref}
           style={{
