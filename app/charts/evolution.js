@@ -166,7 +166,7 @@ function Tree(
     .append("circle")
     .attr("fill", (d) =>
       d.data.model_node
-        ? "blue"
+        ? "pink"
         : (d.data[color_attribute] && colorScale(+d.data[color_attribute])) ||
           "lightgrey"
     )
@@ -183,8 +183,27 @@ function Tree(
       tooltip.html(`
       <p><strong>Model:</strong> ${d.data.model}</p>
       <p><strong>Make:</strong> ${d.data.make}</p>
-      <p><strong>${color_attribute}:</strong> ${d.data[color_attribute] || "None"}</p>
-      <p><strong>${size_attribute}:</strong> ${d.data[size_attribute] || "None"}</p>
+      ${
+        (!d.data.model_node &&
+          `<p><strong>Generation:</strong> ${d.data.generation || "?"}</p>`) ||
+        ""
+      }
+
+      ${
+        (!d.data.model_node &&
+          `<p><strong>${color_attribute}:</strong> ${
+            d.data[color_attribute] || "None"
+          }</p>`) ||
+        ""
+      }
+      ${
+        (!d.data.model_node &&
+          `<p><strong>${size_attribute}:</strong> ${
+            d.data[size_attribute] || "None"
+          }</p>`) ||
+        ""
+      }
+
       ${
         (!d.data.model_node &&
           `<p><strong>Year From:</strong> ${d.data.year_from}</p>`) ||
@@ -396,9 +415,8 @@ function Evolution() {
         } else {
           // Else, create a new model node
           const currentModelNode = {
-            ...item,
+            make: item.make,
             name: item.model,
-
             model_node: true,
             year_from: item.year_from - 20,
             children: [node],
@@ -410,7 +428,8 @@ function Evolution() {
 
       // add a rooth tot his data
       const rootNode = {
-        name: "root",
+        name: selectedMake,
+        model_node: true,
         year_from: "1900",
         year_to: "1900",
         children: hierarchicalData,
@@ -424,14 +443,7 @@ function Evolution() {
             .reverse()
             .map((d) => d.data.name)
             .join(".")}`, // hover text
-        link: (d, n) =>
-          `https://github.com/prefuse/Flare/${
-            n.children ? "tree" : "blob"
-          }/master/flare/src/${n
-            .ancestors()
-            .reverse()
-            .map((d) => d.data.name)
-            .join("/")}${n.children ? "" : ".as"}`,
+
         sort: (a, b) => d3.descending(a.height, b.height), // reduce link crossings
         tree: d3.cluster,
         width: width,
