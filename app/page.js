@@ -11,7 +11,7 @@ import Explore from "./charts/exploration";
 import Explore2 from "./charts/exploration2";
 import { MyContextProvider } from "./data_context";
 import Evolution from "./charts/evolution";
-import WorldEvolution from "./charts/World";
+import WorldEvolution from "./charts/world";
 
 function classNames(...classes) {
   return classes.filter(Boolean).join(" ");
