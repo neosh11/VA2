@@ -60,9 +60,7 @@ function Tree(
 
   // number of descenteds of the root
   const n = descendants.length;
-
   const dx = 20;
-
   const xScale = d3
     .scaleLinear()
     .domain([d3.min(root.descendants(), (d) => d.data.year_from) - 10, 2025])
@@ -70,11 +68,8 @@ function Tree(
 
   // Calculate the maximum depth based on year_from value
   const maxDepth = d3.max(root.descendants(), (d) => d.data.year_from);
-
   const dy = width / maxDepth;
-
   tree().nodeSize([dx, dy])(root);
-
   // Center the tree.
   let x0 = Infinity;
   let x1 = -x0;
@@ -127,10 +122,43 @@ function Tree(
     .attr("target", link == null ? null : linkTarget)
     .attr("transform", (d) => `translate(${xScale(d.data.year_from)},${d.x})`);
 
+  let tooltip = d3
+    .select("body")
+    .append("div")
+    .style("position", "absolute")
+    .style("z-index", "10")
+    .style("visibility", "hidden")
+    .style("background", "#fff")
+    .style("padding", "10px")
+    .style("border", "1px solid #ccc")
+    .style("border-radius", "5px");
+
   node
     .append("circle")
-    .attr("fill", (d) => (d.children ? stroke : fill))
-    .attr("r", r);
+    .attr("fill", (d) =>
+      d.data.model_node ? "blue" : d.children ? stroke : fill
+    )
+    .attr("r", r)
+    .on("mouseover", function (event, d) {
+      tooltip.html(`
+      <p><strong>Model:</strong> ${d.data.model}</p>
+      <p><strong>Make:</strong> ${d.data.make}</p>
+      ${
+        (!d.data.model_node &&
+          `<p><strong>Year From:</strong> ${d.data.year_from}</p>`) ||
+        ""
+      }
+  `);
+      return tooltip.style("visibility", "visible");
+    })
+    .on("mousemove", function (event, d) {
+      return tooltip
+        .style("top", d3.pointer(event, d)[1] - 10 + "px")
+        .style("left", d3.pointer(event, d)[0] + 10 + "px");
+    })
+    .on("mouseout", function () {
+      return tooltip.style("visibility", "hidden");
+    });
 
   if (title != null) node.append("title").text((d) => title(d.data, d));
 
@@ -143,7 +171,7 @@ function Tree(
       .attr("paint-order", "stroke")
       .attr("stroke", halo)
       .attr("stroke-width", haloWidth)
-      .text((d, i) => L[i]);
+      .text((d, i) => (d.data.model_node ? L[i] : ""));
 
   return svg.node();
 }
@@ -284,9 +312,9 @@ function Evolution() {
         // Create new node
 
         let node = {
+          ...item,
           name: item.generation,
           model: item.model,
-
           year_from: item.year_from,
           year_to: item.year_to,
           children: [],
@@ -302,8 +330,11 @@ function Evolution() {
         } else {
           // Else, create a new model node
           const currentModelNode = {
+            ...item,
             name: item.model,
-            year_from: item.year_from - 0.1,
+
+            model_node: true,
+            year_from: item.year_from - 20,
             children: [node],
           };
           hierarchicalData.push(currentModelNode);
@@ -345,90 +376,6 @@ function Evolution() {
         // height: height,
         svg,
       });
-
-      // const makes = new Set(raw.map((d) => d.make));
-
-      // //  DO the d3js magic here
-      // // Initialize an empty array to hold the data
-
-      // const tree = d3.tree().size([height, width]);
-
-      // // Apply the root data to the tree layout
-      // let root = d3.hierarchy(rootNode, (d) => d.children);
-      // tree(root);
-
-      // // rearrange
-      // let yScale = d3
-      //   .scaleLinear()
-      //   .domain([
-      //     d3.min(root.descendants(), (d) => {
-      //       return 1890.0;
-      //     }),
-      //     d3.max(root.descendants(), (d) => {
-      //       console.log(d.data.year_from, "efsdcsdavsd");
-      //       return 2030.0;
-      //     }),
-      //   ])
-      //   .range([0, height]);
-
-      // // Adjust y positions based on year_from
-      // root.descendants().forEach((d) => {
-      //   d.y = yScale(d.data.year_from);
-      // });
-
-      // // Append the svg object to the body of the page
-      // const margin = { top: 20, right: 200, bottom: 30, left: 200 };
-
-      // svg.selectAll("*").remove();
-
-      // svg
-      //   .attr("width", width + margin.right + margin.left)
-      //   .attr("height", height + margin.top + margin.bottom)
-      //   .append("g")
-      //   .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
-
-      // // Declare a function to generate the links between nodes
-      // const link = d3
-      //   .linkVertical()
-      //   .x((d) => d.x)
-      //   .y((d) => d.y);
-
-      // // Add the links
-      // svg
-      //   .selectAll(".link")
-      //   .data(root.links())
-      //   .enter()
-      //   .append("path")
-      //   .attr("class", "link")
-      //   .attr("d", link);
-
-      // // Add each node as a group
-      // const node = svg
-      //   .selectAll(".node")
-      //   .data(root.descendants())
-      //   .enter()
-      //   .append("g")
-      //   .attr("class", function (d) {
-      //     return "node" + (d.children ? " node--internal" : " node--leaf");
-      //   })
-      //   .attr("transform", function (d) {
-      //     return "translate(" + d.x + "," + d.y + ")";
-      //   });
-
-      // // Add the circle for this node
-      // node.append("circle").attr("r", 10);
-
-      // // Add the text for this node
-      // node
-      //   .append("text")
-      //   .attr("dy", ".35em")
-      //   .attr("y", function (d) {
-      //     return d.children ? -20 : 20;
-      //   })
-      //   .style("text-anchor", "middle")
-      //   .text(function (d) {
-      //     return d.data.name;
-      //   });
     },
     [width, selectedMake]
   );
