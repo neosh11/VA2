@@ -36,12 +36,16 @@ function Tree(
     halo = "#fff", // color of label halo
     haloWidth = 3, // padding around the labels
     curve = d3.curveBumpX, // curve for the link
+
+    color_attribute,
+    size_attribute,
   } = {}
 ) {
   // If id and parentId options are specified, or the path option, use d3.stratify
   // to convert tabular data to a hierarchy; otherwise we assume that the data is
   // specified as an object {children} with nested objects (a.k.a. the “flare.json”
   // format), and use d3.hierarchy.
+
   const root =
     path != null
       ? d3.stratify().path(path)(data)
@@ -51,6 +55,16 @@ function Tree(
 
   // Sort the nodes.
   if (sort != null) root.sort(sort);
+
+  let colorScale = d3
+    .scaleLinear()
+    .domain(d3.extent(root.descendants(), (d) => +d.data[color_attribute]))
+    .range(["lightgreen", "darkgreen"]);
+
+  let sizeScale = d3
+    .scaleSqrt()
+    .domain(d3.extent(root.descendants(), (d) => +d.data[size_attribute]))
+    .range([5, 10]); // replace with the desired minimum and maximum radius
 
   // Compute labels and titles.
   const descendants = root.descendants();
@@ -79,10 +93,7 @@ function Tree(
   });
 
   // Compute the default height.
-  console.log("height");
-  console.log(height);
   if (height === undefined) height = x1 - x0 + dx * 2;
-
   // Use the required curve
   if (typeof curve !== "function") throw new Error(`Unsupported curve`);
 
@@ -93,6 +104,24 @@ function Tree(
     .attr("style", "max-width: 100%; height: auto; height: intrinsic;")
     .attr("font-family", "sans-serif")
     .attr("font-size", 10);
+
+  // Create an x-axis
+  const xAxis = d3.axisTop(xScale);
+  // Adding the x-axis to the svg
+  svg
+    .append("g")
+    .attr("class", "x-axis")
+    .attr("transform", `translate(0, ${height / 2})`) // translate it down by the top margin
+    .call(xAxis);
+
+  svg
+    .append("g")
+    .attr("class", "x-axis-top")
+    .attr("transform", `translate(0, ${-height / 2 + 20})`) // translate it down by the top margin
+    .call(xAxis);
+
+  // Styling the x-axis to be on top of everything else
+  // svg.select(".x-axis").attr("transform", "translate(0, 0)"); // This can be adjusted based on where you want the x-axis
 
   svg
     .append("g")
@@ -136,13 +165,26 @@ function Tree(
   node
     .append("circle")
     .attr("fill", (d) =>
-      d.data.model_node ? "blue" : d.children ? stroke : fill
+      d.data.model_node
+        ? "blue"
+        : (d.data[color_attribute] && colorScale(+d.data[color_attribute])) ||
+          "lightgrey"
     )
-    .attr("r", r)
+    .attr("r", (d) =>
+      d.data.model_node || !d.data[size_attribute]
+        ? 5
+        : sizeScale(+d.data[size_attribute])
+    )
+
+    .attr("stroke", (d) => (d.data[size_attribute] ? "black" : "none")) // black border when size_attribute doesn't exist
+    .attr("stroke-width", (d) => (d.data[size_attribute] ? 1 : 0)) // border width
+
     .on("mouseover", function (event, d) {
       tooltip.html(`
       <p><strong>Model:</strong> ${d.data.model}</p>
       <p><strong>Make:</strong> ${d.data.make}</p>
+      <p><strong>${color_attribute}:</strong> ${d.data[color_attribute] || "None"}</p>
+      <p><strong>${size_attribute}:</strong> ${d.data[size_attribute] || "None"}</p>
       ${
         (!d.data.model_node &&
           `<p><strong>Year From:</strong> ${d.data.year_from}</p>`) ||
@@ -181,26 +223,77 @@ function Evolution() {
   const { width, height } = useContainerSize(containerRef);
   const raww = useContext(MyContext);
   const [selectedMake, setselectedMake] = useState("audi");
+  const [selectedColor, setselectedColor] = useState(
+    "acceleration_0_100_km/h_s"
+  );
+
+  const [selectedSize, setselectedSize] = useState("acceleration_0_100_km/h_s");
 
   let makeSelector = null;
   if (raww) {
     // generate options based on the makes in inside raww
     const makes = new Set(raww.map((d) => d.make));
+    const data_columns = new Set(raww.columns);
     // make the react selector
     makeSelector = (
-      <select
-        value={selectedMake}
-        onChange={(e) => {
-          console.log(e.target.value);
-          setselectedMake(e.target.value);
-        }}
-      >
-        {Array.from(makes).map((d) => (
-          <option key={d} value={d}>
-            {d}
-          </option>
-        ))}
-      </select>
+      <div className="grid grid-cols-3 gap-x-5">
+        <div className="grid">
+          <label className="block text-md font-bold leading-6 text-gray-900">
+            Make
+          </label>
+          <select
+            value={selectedMake}
+            onChange={(e) => {
+              console.log(e.target.value);
+              setselectedMake(e.target.value);
+            }}
+          >
+            {Array.from(makes).map((d) => (
+              <option key={d} value={d}>
+                {d}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className="grid">
+          <label className="block text-md font-bold leading-6 text-gray-900">
+            Color Attribute
+          </label>
+          <select
+            value={selectedColor}
+            onChange={(e) => {
+              console.log(e.target.value);
+              setselectedColor(e.target.value);
+            }}
+          >
+            {Array.from(data_columns).map((d) => (
+              <option key={d} value={d}>
+                {d}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className="grid">
+          <label className="block text-md font-bold leading-6 text-gray-900">
+            Size Attribute
+          </label>
+          <select
+            value={selectedSize}
+            onChange={(e) => {
+              console.log(e.target.value);
+              setselectedSize(e.target.value);
+            }}
+          >
+            {Array.from(data_columns).map((d) => (
+              <option key={d} value={d}>
+                {d}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
     );
   }
 
@@ -375,13 +468,15 @@ function Evolution() {
         width: width,
         // height: height,
         svg,
+        color_attribute: selectedColor,
+        size_attribute: selectedSize,
       });
     },
-    [width, selectedMake, raww]
+    [width, selectedMake, raww, selectedSize, selectedColor]
   );
 
   return (
-    <>
+    <div className="gap-y-4">
       {makeSelector}
       <div ref={containerRef} className="w-full flex">
         <svg
@@ -394,7 +489,7 @@ function Evolution() {
           }}
         />
       </div>
-    </>
+    </div>
   );
 }
 
