@@ -10,6 +10,7 @@ import Intro from "./charts/intro";
 import Explore from "./charts/exploration";
 import Explore2 from "./charts/exploration2";
 import { MyContextProvider } from "./data_context";
+import Evolution from "./charts/evolution";
 
 function classNames(...classes) {
   return classes.filter(Boolean).join(" ");
@@ -20,8 +21,8 @@ const tabs = [
   { name: "Models by Country", id: "sunburst" },
   { name: "Makes Over Timer", id: "explore" },
   { name: "Mileage vs CO2", id: "explore2" },
+  { name: "Evolution", id: "evolution" },
   { name: "Yours", id: "yours" },
-  { name: "Yours2", id: "yours2" },
 ];
 
 function Navigation({ selectedTab = "intro", setselectedTab }) {
@@ -86,6 +87,9 @@ function SelectedGraph({ selectedTab = "sunburst" }) {
   }
   if (selectedTab === "explore2") {
     return <Explore2 />;
+  }
+  if (selectedTab === "evolution") {
+    return <Evolution />;
   }
 }
 
