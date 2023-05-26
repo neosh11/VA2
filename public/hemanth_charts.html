@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<link
+  rel="stylesheet"
+  href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css"
+/>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
+
+<title>Cars Dashboard</title>
+<style>
+  .svglabel {
+    font-family: sans-serif;
+    pointer-events: none;
+  }
+
+  .row {
+    border: #000000 solid 1px;
+  }
+
+  #tooltip {
+    position: absolute;
+    padding: 2px;
+    pointer-events: none;
+    border-radius: 4px;
+    box-shadow: 3px 3px 10px 0px rgba(0, 0, 0, 0.25);
+    font: 15px sans-serif;
+    line-height: 1;
+    padding: 12px;
+    background: rgb(250, 247, 247);
+    color: rgb(19, 18, 18);
+    border-radius: 2px;
+  }
+  #parallel,
+  #sunburst,
+  #stream {
+    height: 60%;
+    width: 60%;
+    margin: auto;
+  }
+</style>
+
+<body>
+  <div class="container-fluid">
+    <h1 style="text-align: center; color: #000000">Cars Dashboard</h1>
+    <div class="row">
+      <div class="col-md-12">
+        <h2>Task 1</h2>
+        <h4>
+          A parallel coordinates chart is an excellent choice for providing an
+          overview and showing the structure of the dataset with the columns
+          "avg_engine_hp", "avg_max_speed", "avg_height_mm", "avg_max_power_kw".
+          This multivariate visualization tool allows users to observe trends
+          and relationships among these variables across different car models.
+          This chart can give the viewer insight into which features tend to
+          correlate, and which cars stand out in certain dimensions.
+        </h4>
+        <div>
+          <div>
+            Select Year:
+            <select id="year-dropdown"></select>
+          </div>
+          <div id="parallel"></div>
+        </div>
+      </div>
+    </div>
+    <div class="row">
+      <div class="col-md-12">
+        <h2>Task 2</h2>
+        <h4>
+          The sunburst chart, with its hierarchical structure of
+          country_of_origin -> make -> model, allows for identification of
+          important clusters in the data. It clearly presents data at different
+          hierarchical levels, starting from the country of origin at the
+          center, and radiating outward with car make and finally the model. By
+          inspecting the different segments of the chart, one can gain an
+          understanding of which countries have the most diversity in terms of
+          makes and models, and the relative proportions of these categories.
+        </h4>
+        <div id="sunburst"></div>
+      </div>
+    </div>
+    <div class="row">
+      <div class="col-md-12">
+        <h2>Task 3</h2>
+        <h4>
+          The streamline (or streamgraph) chart is used to visualize and analyze
+          temporal dynamics and relationships between "avg_engine_hp",
+          "avg_mixed_fuel", and "avg_max_speed". By depicting these attributes
+          as flowing streams, it allows us to identify trends over time, explore
+          the rise and fall of different attributes, and compare these trends
+          against each other. This information can be valuable in generating,
+          confirming, or rejecting hypotheses about how these variables interact
+          and evolve over time.
+        </h4>
+        <div id="stream"></div>
+      </div>
+    </div>
+  </div>
+  <div id="tooltip"></div>
+
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <script src="https://d3js.org/d3-scale-chromatic.v1.min.js"></script>
+  <script>
+    d3.csv("cleaned.csv").then(function (raw) {
+      raw = raw.filter(
+        (d) =>
+          d.country_of_origin !== "" &&
+          d.make !== "" &&
+          d.model !== "" &&
+          d.engine_hp !== "" &&
+          d.height_mm !== "" &&
+          d.max_speed_km_per_h !== "" &&
+          d.max_power_kw !== "" &&
+          d.year_from !== ""
+      );
+      raw.sort(function (a, b) {
+        return a.year_from - b.year_from;
+      });
+
+      var years = Array.from(new Set(raw.map((d) => d.year_from)));
+      years.sort((a, b) => b - a);
+
+      d3.select("#year-dropdown")
+        .selectAll("myOptions")
+        .data(years)
+        .join("option")
+        .text(function (d) {
+          return +d;
+        }) // text showed in the dropdown
+        .attr("value", function (d) {
+          return +d;
+        }); // corresponding value returned by the dropdown
+
+      d3.select("#year-dropdown").on("change", function (d) {
+        var selectedOption = d3.select(this).node().value;
+        parallelChart(raw, selectedOption);
+      });
+
+      drawSunburst(raw);
+      parallelChart(raw, 2020);
+      streamLine(raw);
+    });
+    // .catch(function(error){
+    //   throw error;
+    // });
+
+    function parallelChart(data, year) {
+      d3.select("#parallel svg").remove();
+      data = data.filter(
+        (d) =>
+          d.engine_hp !== "" &&
+          d.height_mm !== "" &&
+          d.max_speed_km_per_h !== "" &&
+          d.max_power_kw !== ""
+      );
+
+      data = data.filter((d) => +d.year_from === +year);
+
+      const nestedData = Array.from(
+        d3.rollup(
+          data,
+          (v) => ({
+            avg_engine_hp: d3.mean(v, (d) => d.engine_hp), // calculate average engine_hp
+            avg_max_speed: d3.mean(v, (d) => d.max_speed_km_per_h), // calculate average max_speed
+            avg_height_mm: d3.mean(v, (d) => d.height_mm), // calculate average height_mm
+            avg_max_power_kw: d3.mean(v, (d) => d.max_power_kw), // calculate average max_power_kw
+          }),
+          (d) => d.make // group by 'make'
+        ),
+        ([key, value]) => ({ key, value })
+      );
+
+      // Assume you have width and height defined for your SVG element
+      var margin = { top: 50, right: 50, bottom: 10, left: 70 },
+        width = 800 - margin.left - margin.right,
+        height = 500 - margin.top - margin.bottom;
+
+      var dimensions = [
+        "avg_engine_hp",
+        "avg_max_speed",
+        "avg_height_mm",
+        "avg_max_power_kw",
+      ];
+
+      // Set up scales
+      var y = {};
+      dimensions.forEach(function (d) {
+        y[d] = d3
+          .scaleLinear()
+          .domain(
+            d3.extent(nestedData, function (p) {
+              return +p.value[d];
+            })
+          )
+          .range([height, 0]);
+      });
+
+      var x = d3.scalePoint().domain(dimensions).range([0, width]);
+
+      // Create SVG
+      var svg = d3
+        .select("#parallel")
+        .append("svg")
+        .attr("preserveAspectRatio", "xMinYMin meet")
+        .attr(
+          "viewBox",
+          "0 0 " +
+            (width + margin.left + margin.right) +
+            " " +
+            (height + margin.top + margin.bottom)
+        )
+        .append("g")
+        .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+      // Add a group element for each dimension
+      var g = svg
+        .selectAll(".dimension")
+        .data(dimensions)
+        .join("g")
+        .attr("class", "dimension")
+        .attr("transform", function (d) {
+          return "translate(" + x(d) + ")";
+        });
+
+      // Add an axis and title
+      g.append("g")
+        .attr("class", "axis")
+        .each(function (d) {
+          d3.select(this).call(d3.axisLeft(y[d]));
+        })
+        .append("text")
+        .style("text-anchor", "middle")
+        .attr("y", -9)
+        .attr("dy", "0.35em") // center text vertically
+        .style("fill", "black") // ensure text is black
+        .text(function (d) {
+          return d;
+        });
+
+      // Add lines
+      foreground = svg
+        .append("g")
+        .attr("class", "foreground")
+        .selectAll("path")
+        .data(nestedData)
+        .join("path")
+        .attr("fill", "none")
+        .attr("stroke", "red")
+        .attr("stroke-width", "2px")
+        .attr("d", function (d) {
+          return path(d.value);
+        })
+        .on("mousemove", function (event, d) {
+          d3.select(this).attr("stroke", "black").attr("stroke-width", "3px");
+
+          d3.select("#tooltip")
+            .html("<b>Car:</b>" + d.key)
+            .style("left", event.pageX + 25 + "px")
+            .style("top", event.pageY - 28 + "px")
+            .style("opacity", 1);
+        })
+        .on("mouseleave", function () {
+          d3.select(this).attr("stroke", "red").attr("stroke-width", "2px");
+          d3.select("#tooltip").style("opacity", 0);
+        });
+
+      // Returns the path for a given data point
+      function path(d) {
+        return d3.line()(
+          dimensions.map(function (p) {
+            return [x(p), y[p](d[p])];
+          })
+        );
+      }
+    }
+
+    function streamLine(data) {
+      // Assume you have width and height defined for your SVG element
+      var margin = { top: 50, right: 50, bottom: 50, left: 70 },
+        width = 960 - margin.left - margin.right,
+        height = 600 - margin.top - margin.bottom;
+
+      // Create SVG
+      var svg = d3
+        .select("#stream")
+        .append("svg")
+        .attr("preserveAspectRatio", "xMinYMin meet")
+        .attr(
+          "viewBox",
+          "0 0 " +
+            (width + margin.left + margin.right) +
+            " " +
+            (height + margin.top + margin.bottom)
+        )
+        .append("g")
+        .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+      // create a tooltip
+      var Tooltip = svg
+        .append("text")
+        .attr("x", 0)
+        .attr("y", 0)
+        .style("opacity", 0)
+        .style("font-size", 17);
+
+      const nestedData = Array.from(
+        d3.rollup(
+          data,
+          (v) => ({
+            avg_engine_hp: d3.mean(v, (d) => d.engine_hp),
+            avg_mixed_fuel: d3.mean(
+              v,
+              (d) => d.mixed_fuel_consumption_per_100_km_l
+            ),
+            avg_max_speed: d3.mean(v, (d) => d.max_speed_km_per_h),
+          }),
+          (d) => +d.year_from // group by 'year_from'
+        ),
+        ([key, value]) => ({
+          key: +key,
+          ...value,
+          avg_engine_hp: isNaN(value.avg_engine_hp) ? 0 : value.avg_engine_hp,
+          avg_mixed_fuel: isNaN(value.avg_mixed_fuel)
+            ? 0
+            : value.avg_mixed_fuel,
+          avg_max_speed: isNaN(value.avg_max_speed) ? 0 : value.avg_max_speed,
+        })
+      );
+
+      var keys = ["avg_engine_hp", "avg_mixed_fuel", "avg_max_speed"];
+
+      var stack = d3.stack().keys(keys).offset(d3.stackOffsetWiggle);
+
+      var series = stack(nestedData);
+
+      var x = d3
+        .scaleLinear()
+        .range([0, width])
+        .domain(
+          d3.extent(nestedData, function (d) {
+            return +d.key;
+          })
+        );
+
+      var y = d3
+        .scaleLinear()
+        .range([height, 0])
+        .domain([0, d3.max(series, (d) => d3.max(d, (dd) => dd[1]))]);
+
+      svg
+        .append("g")
+        .attr("transform", "translate(0," + (height + 30) + ")")
+        .call(d3.axisBottom(x).tickSize(-height - 20))
+        .select(".domain")
+        .remove();
+      // Customization
+      svg.selectAll(".tick line").attr("stroke", "#b8b8b8");
+
+      var area = d3
+        .area()
+        .x((d) => x(d.data.key))
+        .y0((d) => y(d[0]))
+        .y1((d) => y(d[1]));
+
+      var color = d3.scaleOrdinal(d3.schemeDark2);
+
+      svg
+        .selectAll(".myArea")
+        .data(series)
+        .join("path")
+        .attr("class", "myArea")
+        .attr("d", area)
+        .style("fill", (d, i) => color(i))
+        .on("mouseover", function (event, d) {
+          Tooltip.style("opacity", 1);
+          d3.selectAll(".myArea").style("opacity", 0.2);
+          d3.select(this).style("stroke", "black").style("opacity", 1);
+        })
+        .on("mousemove", function (event, d, i) {
+          grp = d.key;
+          Tooltip.text(grp);
+        })
+        .on("mouseleave", function (event, d) {
+          Tooltip.style("opacity", 0);
+          d3.selectAll(".myArea").style("opacity", 1).style("stroke", "none");
+        });
+    }
+
+    function drawSunburst(raw) {
+      var width = 960,
+        height = 700,
+        radius = Math.min(width, height) / 2 - 10;
+      var formatNumber = d3.format(",d");
+      var x = d3.scaleLinear().range([0, 2 * Math.PI]);
+      var y = d3.scaleLinear().range([0, radius]);
+      var color = d3.scaleOrdinal(d3.schemeCategory10);
+      var partition = d3.partition();
+      function startAngle(d) {
+        return Math.max(0, Math.min(2 * Math.PI, x(d.x0)));
+      }
+      function endAngle(d) {
+        return Math.max(0, Math.min(2 * Math.PI, x(d.x1)));
+      }
+      function innerRadius(d) {
+        return Math.max(0, y(d.y0));
+      }
+      function outerRadius(d) {
+        return Math.max(0, y(d.y1));
+      }
+      var arc = d3
+        .arc()
+        .startAngle(function (d) {
+          return startAngle(d);
+        })
+        .endAngle(function (d) {
+          return endAngle(d);
+        })
+        .innerRadius(function (d) {
+          return innerRadius(d);
+        })
+        .outerRadius(function (d) {
+          return outerRadius(d);
+        });
+      var texttransform = function (d) {
+        var translation = y(d.y0);
+        var rotation = computeTextRotation(d);
+        if (rotation > 90 && rotation < 270) {
+          rotation = rotation + 180;
+          translation = -translation;
+        }
+        return "rotate(" + rotation + ")" + "translate(" + translation + ",0)";
+      };
+      var transition = {};
+      function calcTransitionPercentage() {
+        var now = Date.now() - transition.clockNow;
+        if (!transition.delay || now > transition.delay) {
+          return Math.min(
+            1,
+            (now - (transition.delay || 0)) / transition.duration
+          );
+        }
+        return 0;
+      }
+      function computeTextRotation(d) {
+        if (d.depth === 0) {
+          return 0;
+        }
+        var current = x((d.x0 + d.x1) / 2);
+        var angle = ((current - Math.PI / 2) / Math.PI) * 180;
+        if (transition.node === d) {
+          angle -= 90 * calcTransitionPercentage();
+        }
+        return angle > 90 || angle < 270 ? angle : 180 + angle;
+      }
+      var textanchor = function (d) {
+        if (d.depth === 0) {
+          return "middle";
+        }
+        var rotation = computeTextRotation(d);
+        return rotation > 90 && rotation < 270 ? "end" : "start";
+      };
+      var textdx = function (d) {
+        if (d.depth === 0) {
+          return 0;
+        }
+        var rotation = computeTextRotation(d);
+        return rotation > 90 && rotation < 270 ? -6 : 6;
+      };
+      var svg = d3
+        .select("#sunburst")
+        .append("svg")
+        .attr("preserveAspectRatio", "xMinYMin meet")
+        .attr("viewBox", "0 0 " + width + " " + height)
+        .append("g")
+        .attr("transform", "translate(" + width / 2 + "," + height / 2 + ")");
+      function calcFontSize(d) {
+        const xFactor = 12,
+          yFactor = 7.5; // stub
+        if (d.depth === 0) {
+          return "30px";
+        }
+        // use inner arc len as text height delimiter
+        var innerArc =
+          (endAngle(d) - startAngle(d)) * 2 * Math.PI * innerRadius(d);
+        var len = (d.y1 - d.y0) * radius;
+        return (
+          Math.min(innerArc / yFactor, (len / d.data.textlen) * xFactor) + "px"
+        );
+      }
+      function click(event, d = { x0: 0, x1: 1, y0: 0, y1: 1 }) {
+        transition = { clockNow: Date.now(), duration: 750, node: d };
+        var trans = svg.transition().duration(750);
+        trans
+          .selectAll("path")
+          .attrTween("d", function (n) {
+            return function () {
+              return arc(n);
+            };
+          })
+          .tween("scale", function () {
+            var xd = d3.interpolate(x.domain(), [d.x0, d.x1]),
+              yd = d3.interpolate(y.domain(), [d.y0, 1]),
+              yr = d3.interpolate(y.range(), [d.y0 ? 20 : 0, radius]);
+            return function (t) {
+              x.domain(xd(t));
+              y.domain(yd(t)).range(yr(t));
+            };
+          });
+        trans
+          .selectAll("text")
+          .attrTween("transform", function (n) {
+            return function () {
+              return texttransform(n);
+            };
+          })
+          .attrTween("text-anchor", function (n) {
+            return function () {
+              return textanchor(n);
+            };
+          })
+          .attrTween("dx", function (n) {
+            return function () {
+              return textdx(n);
+            };
+          })
+          .styleTween("font-size", function (n) {
+            return function () {
+              return calcFontSize(n);
+            };
+          });
+        trans
+          .selectAll("text")
+          .delay(400)
+          .attrTween("opacity", function (n) {
+            return function () {
+              if (d === n || n.ancestors().includes(d)) {
+                return 1;
+              } else {
+                return 0;
+              }
+            };
+          });
+      }
+      // Group the data by 'country_of_origin'
+      const dataset = Array.from(d3.group(raw, (d) => d.country_of_origin));
+
+      var Level_0 = { name: "", children: [] };
+
+      dataset.forEach(function ([key, values], i) {
+        var Level_1 = { name: key, children: [] };
+
+        // Group by 'make'
+        const makeData = Array.from(d3.group(values, (d) => d.make));
+
+        makeData.forEach(function ([makeKey, makeValues]) {
+          var Level_3 = {};
+
+          const models = makeValues.filter((d) => d.model !== "");
+
+          if (models.length > 0) {
+            Level_3 = {
+              name: makeKey,
+              children: Array.from(
+                d3.rollup(
+                  models,
+                  (v) => v.length,
+                  (d) => d.model
+                ),
+                ([k, v]) => ({ name: k, size: v })
+              ),
+            };
+          } else {
+            Level_3 = { name: makeKey, size: 1 };
+          }
+
+          Level_1.children.push(Level_3);
+        });
+
+        Level_0.children.push(Level_1);
+      });
+
+      // Set parent for each node
+      Level_0.children.forEach((d) => {
+        d.parent = Level_0;
+        d.children.forEach((e) => {
+          e.parent = d;
+          if (e.children) {
+            e.children.forEach((f) => {
+              f.parent = e;
+            });
+          }
+        });
+      });
+
+      var rData = d3.hierarchy(Level_0);
+      var nodes = partition(
+        rData
+          .sum(function (d) {
+            return 1;
+          }) // each leaf gets a size of 1
+          .sort(function (a, b) {
+            return d3.ascending(a.name, b.name);
+          })
+      ).descendants();
+
+      g = svg.selectAll("path").data(nodes).enter().append("g");
+      path = g
+        .append("path")
+        .attr("d", arc)
+        .style("fill", function (d, i) {
+          var c;
+          if (d.depth === 0) {
+            return "white";
+          } else if (d.depth === 1) {
+            c = color((d.children ? d : d.parent).data.name);
+          } else if (d.depth > 1) {
+            c = d3.color(d.parent.data.color).darker();
+          }
+          d.data.color = c;
+          return c;
+        })
+        .on("click", click)
+        .append("title")
+        .text(function (d) {
+          return d.data.name;
+        });
+      text = g
+        .append("text")
+        .style("fill", function (d) {
+          if (d.depth === 0) {
+            return "#CCC";
+          } else {
+            return "#FFF";
+          }
+        })
+        .attr("class", "svglabel")
+        .attr("transform", texttransform)
+        .attr("text-anchor", textanchor)
+        .attr("dx", textdx)
+        .attr("dy", ".35em") // vertical-align
+        .text(function (d) {
+          return d.data.name;
+        })
+        .style("font-size", function (d) {
+          // hack. save text len as property to make accessible in transiton
+          d.data.textlen = this.getComputedTextLength();
+          return calcFontSize(d);
+        });
+    }
+  </script>
+</body>
