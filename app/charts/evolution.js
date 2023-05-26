@@ -267,7 +267,7 @@ function Evolution() {
     "acceleration_0_100_km/h_s"
   );
 
-  const [selectedSize, setselectedSize] = useState("acceleration_0_100_km/h_s");
+  const [selectedSize, setselectedSize] = useState("highway_fuel_per_100km_l");
 
   let makeSelector = null;
   if (raww) {
