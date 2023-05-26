@@ -22,10 +22,10 @@ const tabs = [
   { name: "Introduction", id: "intro" },
   { name: "Evolution", id: "evolution" },
   { name: "Market Share", id: "sunburst" },
-  { name: "Makes Over Timer", id: "explore" },
-  { name: "Mileage vs CO2", id: "explore2" },
   { name: "World Evolution", id: "world_evolution" },
-  { name: "Extra fun", id: "hemanth" },
+  { name: "Extra Fun", id: "hemanth" },
+  { name: "Makes Over Timer (TBD)", id: "explore" },
+  { name: "Mileage vs CO2 (TBD)", id: "explore2" },
 ];
 
 function Navigation({ selectedTab = "intro", setselectedTab }) {
