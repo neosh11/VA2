@@ -162,11 +162,25 @@ function Tree(
     .style("border", "1px solid #ccc")
     .style("border-radius", "5px");
 
+  const colorMap = {};
+
+  function getRandomColorMake(make) {
+    if (!(make in colorMap)) {
+      const letters = "0123456789ABCDEF";
+      let color = "#";
+      for (let i = 0; i < 6; i++) {
+        color += letters[Math.floor(Math.random() * 16)];
+      }
+      colorMap[make] = color;
+    }
+    return colorMap[make];
+  }
+
   node
     .append("circle")
     .attr("fill", (d) =>
       d.data.model_node
-        ? "pink"
+        ? getRandomColorMake(d.data.make)
         : (d.data[color_attribute] && colorScale(+d.data[color_attribute])) ||
           "lightgrey"
     )
@@ -248,7 +262,7 @@ function Evolution() {
   const containerRef = useRef(null);
   const { width, height } = useContainerSize(containerRef);
   const raww = useContext(MyContext);
-  const [selectedMake, setselectedMake] = useState("audi");
+  const [selectedMake, setselectedMake] = useState("all");
   const [selectedColor, setselectedColor] = useState(
     "acceleration_0_100_km/h_s"
   );
@@ -259,6 +273,9 @@ function Evolution() {
   if (raww) {
     // generate options based on the makes in inside raww
     const makes = new Set(raww.map((d) => d.make));
+
+    makes.add("all");
+
     const data_columns = new Set(raww.columns);
     // make the react selector
     makeSelector = (
@@ -328,7 +345,10 @@ function Evolution() {
 
       //  filter everything with selectedMake
 
-      const raw = raww.filter((d) => d.make === selectedMake);
+      let raw = raww;
+      if (selectedMake !== "all") {
+        raw = raww.filter((d) => d.make === selectedMake);
+      }
 
       // get all the column names from raw
 
@@ -390,22 +410,39 @@ function Evolution() {
       });
 
       // get all values in groups
+      let group_values = Object.values(groups).filter((d) => d.year_from);
 
-      const group_values = Object.values(groups).filter((d) => d.year_from);
+      if (selectedMake == "all") {
+        // remove all values where there are less than 3 generations for a model
+        const atleast_3 = new Map();
+        for (let i = 0; i < group_values.length; i++) {
+          const d = group_values[i];
+          if (atleast_3.has(d.model)) {
+            atleast_3.set(d.model, atleast_3.get(d.model) + 1);
+          } else {
+            atleast_3.set(d.model, 1);
+          }
+        }
+        // filter everything where there are less than 3 generations
+        group_values = group_values.filter((d) => atleast_3.get(d.model) >= 10);
+      }
 
       group_values.sort((a, b) => {
-        if (a.model === b.model) {
-          return a.year_from - b.year_from;
+        if (a.make === b.make) {
+          if (a.model === b.model) {
+            return a.year_from - b.year_from;
+          }
+          return a.model.localeCompare(b.model);
         }
-        return a.model.localeCompare(b.model);
+        return a.make.localeCompare(b.make);
       });
 
       let hierarchicalData = [];
+
       let currentNode = null;
 
       group_values.forEach((item) => {
         // Create new node
-
         let node = {
           ...item,
           name: item.generation,
@@ -442,7 +479,7 @@ function Evolution() {
       };
 
       Tree(rootNode, {
-        label: (d) => d.name,
+        label: (d) => `${d.make} : ${d.name}`,
         title: (d, n) =>
           `${n
             .ancestors()
@@ -450,7 +487,12 @@ function Evolution() {
             .map((d) => d.data.name)
             .join(".")}`, // hover text
 
-        sort: (a, b) => d3.descending(a.height, b.height), // reduce link crossings
+        sort: (a, b) => {
+          if (a.data.make === b.data.make) {
+            return a.data.year_from - b.data.year_from;
+          }
+          return a.data.make.localeCompare(b.data.make);
+        },
         tree: d3.cluster,
         width: width,
         // height: height,
