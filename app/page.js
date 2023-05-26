@@ -19,10 +19,11 @@ function classNames(...classes) {
 
 const tabs = [
   { name: "Introduction", id: "intro" },
+  { name: "Evolution", id: "evolution" },
   { name: "Models by Country", id: "sunburst" },
   { name: "Makes Over Timer", id: "explore" },
   { name: "Mileage vs CO2", id: "explore2" },
-  { name: "Evolution", id: "evolution" },
+
   { name: "World Evolution", id: "world_evolution" },
 ];
 
