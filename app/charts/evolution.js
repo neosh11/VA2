@@ -28,7 +28,7 @@ function Tree(
     padding = 1, // horizontal padding for first and last column
     fill = "#999", // fill for nodes
     fillOpacity, // fill opacity for nodes
-    stroke = "#555", // stroke for links
+    stroke = "#E5E5E5", // stroke for links
     strokeWidth = 1.5, // stroke width for links
     strokeOpacity = 0.4, // stroke opacity for links
     strokeLinejoin, // stroke line join for links
@@ -262,7 +262,7 @@ function Evolution() {
   const containerRef = useRef(null);
   const { width, height } = useContainerSize(containerRef);
   const raww = useContext(MyContext);
-  const [selectedMake, setselectedMake] = useState("all");
+  const [selectedMake, setselectedMake] = useState("0-all");
   const [selectedColor, setselectedColor] = useState(
     "acceleration_0_100_km/h_s"
   );
@@ -274,7 +274,7 @@ function Evolution() {
     // generate options based on the makes in inside raww
     const makes = new Set(raww.map((d) => d.make));
 
-    makes.add("all");
+    makes.add("0-all");
 
     const data_columns = new Set(raww.columns);
     // make the react selector
@@ -290,10 +290,12 @@ function Evolution() {
               setselectedMake(e.target.value);
             }}
           >
-            {Array.from(makes).map((d) => (
-              <option key={d} value={d}>
-                {d}
-              </option>
+            {Array.from(makes)
+              .sort()
+              .map((d) => (
+                <option key={d} value={d}>
+                  {d}
+                </option>
             ))}
           </select>
         </div>
@@ -346,7 +348,7 @@ function Evolution() {
       //  filter everything with selectedMake
 
       let raw = raww;
-      if (selectedMake !== "all") {
+      if (selectedMake !== "0-all") {
         raw = raww.filter((d) => d.make === selectedMake);
       }
 
@@ -412,19 +414,25 @@ function Evolution() {
       // get all values in groups
       let group_values = Object.values(groups).filter((d) => d.year_from);
 
-      if (selectedMake == "all") {
+      if (selectedMake == "0-all") {
         // remove all values where there are less than 3 generations for a model
         const atleast_3 = new Map();
         for (let i = 0; i < group_values.length; i++) {
           const d = group_values[i];
-          if (atleast_3.has(d.model)) {
-            atleast_3.set(d.model, atleast_3.get(d.model) + 1);
+          if (atleast_3.has(d.make + d.model)) {
+            atleast_3.set(
+              d.make + d.model,
+              atleast_3.get(d.make + d.model) + 1
+            );
           } else {
-            atleast_3.set(d.model, 1);
+            atleast_3.set(d.make + d.model, 1);
           }
         }
+        console.log(group_values);
         // filter everything where there are less than 3 generations
-        group_values = group_values.filter((d) => atleast_3.get(d.model) >= 10);
+        group_values = group_values.filter(
+          (d) => atleast_3.get(d.make + d.model) >= 10
+        );
       }
 
       group_values.sort((a, b) => {
