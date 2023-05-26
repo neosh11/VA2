@@ -12,6 +12,7 @@ import Explore2 from "./charts/exploration2";
 import { MyContextProvider } from "./data_context";
 import Evolution from "./charts/evolution";
 import WorldEvolution from "./charts/world";
+import { useRouter } from "next/navigation";
 
 function classNames(...classes) {
   return classes.filter(Boolean).join(" ");
@@ -23,8 +24,8 @@ const tabs = [
   { name: "Market Share", id: "sunburst" },
   { name: "Makes Over Timer", id: "explore" },
   { name: "Mileage vs CO2", id: "explore2" },
-
   { name: "World Evolution", id: "world_evolution" },
+  { name: "Extra fun", id: "hemanth" },
 ];
 
 function Navigation({ selectedTab = "intro", setselectedTab }) {
@@ -63,7 +64,9 @@ function Navigation({ selectedTab = "intro", setselectedTab }) {
   );
 }
 
-function SelectedGraph({ selectedTab = "sunburst" }) {
+function SelectedGraph({ selectedTab = "sunburst", router }) {
+  // get router
+
   if (selectedTab == "sunburst") {
     return <SunBurst data={sunburst_data} />;
   }
@@ -96,9 +99,15 @@ function SelectedGraph({ selectedTab = "sunburst" }) {
   if (selectedTab === "world_evolution") {
     return <WorldEvolution />;
   }
+  if (selectedTab == "hemanth") {
+    // redirect to another page with next router
+    router.push("/hemanth_charts.html");
+  }
 }
 
 export default function Home() {
+  const router = useRouter();
+
   const [selectedTab, setselectedTab] = useState("intro");
   return (
     <MyContextProvider>
@@ -112,7 +121,7 @@ export default function Home() {
         <Navigation selectedTab={selectedTab} setselectedTab={setselectedTab} />
 
         <div className="w-full border-2 p-5 rounded-lg">
-          <SelectedGraph selectedTab={selectedTab} />
+          <SelectedGraph selectedTab={selectedTab} router={router} />
         </div>
       </div>
     </MyContextProvider>
