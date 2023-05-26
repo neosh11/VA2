@@ -62,9 +62,9 @@ function Tree(
     .range(["lightgreen", "darkgreen"]);
 
   let sizeScale = d3
-    .scaleSqrt()
+    .scaleLinear()
     .domain(d3.extent(root.descendants(), (d) => +d.data[size_attribute]))
-    .range([5, 10]); // replace with the desired minimum and maximum radius
+    .range([0, 0.7]); // replace with the desired minimum and maximum radius
 
   // Compute labels and titles.
   const descendants = root.descendants();
@@ -170,10 +170,17 @@ function Tree(
         : (d.data[color_attribute] && colorScale(+d.data[color_attribute])) ||
           "lightgrey"
     )
-    .attr("r", (d) =>
-      d.data.model_node || !d.data[size_attribute]
-        ? 5
-        : sizeScale(+d.data[size_attribute])
+    .attr(
+      "r",
+      (d) =>
+        (0.3 +
+          Math.pow(
+            d.data.model_node || !d.data[size_attribute]
+              ? 0.5
+              : sizeScale(+d.data[size_attribute]),
+            2
+          )) *
+        15
     )
 
     .attr("stroke", (d) => (d.data[size_attribute] ? "black" : "none")) // black border when size_attribute doesn't exist
@@ -407,15 +414,14 @@ function Evolution() {
           year_to: item.year_to,
           children: [],
         };
-
         if (currentNode && currentNode.model === node.model) {
           // If current model is same as the item's model, append to the current model's tree
-
           currentNode.children.push(node);
         } else {
           // Else, create a new model node
           const currentModelNode = {
             make: item.make,
+            model: item.model,
             name: item.model,
             model_node: true,
             year_from: item.year_from - 20,
